@@ -16,6 +16,25 @@ export default function Home() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Auto-load model on mount
+  useState(() => {
+    const autoLoadModel = async () => {
+      setIsProcessing(true);
+      try {
+        await loadModel('/moonet_final.onnx');
+        setModelLoaded(true);
+      } catch (error) {
+        console.error('Failed to auto-load model:', error);
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+    
+    if (!isModelLoaded()) {
+      autoLoadModel();
+    }
+  });
+
   const handleModelUpload = async (file: File) => {
     setIsProcessing(true);
     try {

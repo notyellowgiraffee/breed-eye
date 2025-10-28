@@ -2,10 +2,12 @@ import * as ort from 'onnxruntime-web';
 
 // Indian cattle and buffalo breeds (ordered by model output)
 export const BREEDS = [
-  "Gir", "Sahiwal", "Red Sindhi", "Tharparkar", "Rathi",
-  "Kankrej", "Hariana", "Ongole", "Krishna Valley", "Kangayam",
-  "Murrah", "Jaffarabadi", "Mehsana", "Surti", "Bhadawari",
-  "Nagpuri", "Toda", "Punganur", "Vechur", "Hallikar"
+  'Alambadi', 'Amritmahal', 'Ayrshire', 'Banni', 'Bargur', 'Bhadawari', 'Brown_Swiss',
+  'Dangi', 'Deoni', 'Gir', 'Guernsey', 'Hallikar', 'Hariana', 'Holstein_Friesian',
+  'Jaffrabadi', 'Jersey', 'Kangayam', 'Kankrej', 'Kasargod', 'Kenkatha', 'Kherigarh',
+  'Khillari', 'Krishna_Valley', 'Malnad_gidda', 'Mehsana', 'Murrah', 'Nagori',
+  'Nagpuri', 'Nili_Ravi', 'Nimari', 'Ongole', 'Pulikulam', 'Rathi', 'Red_Dane',
+  'Red_Sindhi', 'Sahiwal', 'Surti', 'Tharparkar', 'Toda', 'Umblachery', 'Vechur'
 ];
 
 export interface Prediction {
@@ -30,9 +32,11 @@ async function preprocessImage(imageElement: HTMLImageElement): Promise<ort.Tens
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
   
-  // Resize to 384x384 (MobileNetV4 input size)
+  // Resize to 384x384 with high-quality (bicubic-like) interpolation
   canvas.width = 384;
   canvas.height = 384;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(imageElement, 0, 0, 384, 384);
   
   const imageData = ctx.getImageData(0, 0, 384, 384);
@@ -94,10 +98,13 @@ export async function predictBreed(imageFile: File): Promise<Prediction[]> {
     const expScores = top5.map(p => Math.exp(p.score));
     const sumExp = expScores.reduce((a, b) => a + b, 0);
     
+    // Buffalo breeds: Bhadawari, Jaffrabadi, Mehsana, Murrah, Nili_Ravi, Nagpuri, Surti, Toda
+    const buffaloBreeds = ['Bhadawari', 'Jaffrabadi', 'Mehsana', 'Murrah', 'Nili_Ravi', 'Nagpuri', 'Surti', 'Toda'];
+    
     return top5.map((p, idx) => ({
       breed: BREEDS[p.index] || `Breed ${p.index}`,
       confidence: (expScores[idx] / sumExp) * 100,
-      category: p.index >= 10 ? 'Buffalo' : 'Cattle' // Simple heuristic
+      category: buffaloBreeds.includes(BREEDS[p.index]) ? 'Buffalo' : 'Cattle'
     }));
   } finally {
     URL.revokeObjectURL(imageUrl);
